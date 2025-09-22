@@ -1,6 +1,25 @@
 # Docker Installation Script for Windows 11
 # This script downloads and installs Docker Desktop for Windows
 
+# IMPORTANT: CUSTOM HOSTNAME CONFIGURATION
+# ===========================================
+# By default, Docker Desktop uses "docker-desktop" as the hostname when joining Docker Swarm.
+# To use a custom hostname (e.g., "windows"), you need to configure Docker after installation:
+#
+# METHOD 1: Create/edit daemon.json file
+# 1. Create file: %USERPROFILE%\.docker\daemon.json
+# 2. Add content: { "hostname": "windows" }
+# 3. Restart Docker Desktop
+#
+# METHOD 2: Docker Desktop Settings
+# 1. Open Docker Desktop → Settings → Docker Engine
+# 2. Add to JSON: "hostname": "windows"
+# 3. Apply & Restart
+#
+# After changing hostname, leave and rejoin the swarm:
+# docker swarm leave
+# docker swarm join --token <token> <manager-ip>:2377
+
 # Check if running as Administrator
 if (-NOT ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
     Write-Error "This script must be run as Administrator"
@@ -89,6 +108,14 @@ Write-Host "1. Start Docker Desktop from Start Menu" -ForegroundColor Gray
 Write-Host "2. Complete Docker Desktop setup wizard" -ForegroundColor Gray
 Write-Host "3. Run firewall configuration: .\firewall-windows.ps1" -ForegroundColor Gray
 Write-Host "4. Join Docker Swarm as worker node" -ForegroundColor Gray
+
+Write-Host "`n=== IMPORTANT: CONFIGURE CUSTOM HOSTNAME ===" -ForegroundColor Red
+Write-Host "After Docker Desktop starts, configure a custom hostname:" -ForegroundColor Yellow
+Write-Host "1. Create file: %USERPROFILE%\.docker\daemon.json" -ForegroundColor White
+Write-Host "2. Add content: { `"hostname`": `"windows`" }" -ForegroundColor White
+Write-Host "3. Restart Docker Desktop" -ForegroundColor White
+Write-Host "4. Leave existing swarm: docker swarm leave" -ForegroundColor White
+Write-Host "5. Rejoin with: docker swarm join --token <token> <manager-ip>:2377" -ForegroundColor White
 
 Write-Host "`nTo verify installation after restart:" -ForegroundColor White
 Write-Host "docker --version" -ForegroundColor Gray

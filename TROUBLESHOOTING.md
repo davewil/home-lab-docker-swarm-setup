@@ -4,6 +4,38 @@ This guide covers common issues you might encounter during Docker Swarm setup an
 
 ## Docker Installation Issues
 
+### 0. Docker Desktop Hostname Configuration
+
+**Issue**: Both Windows and macOS nodes appear as "docker-desktop" in `docker node ls`, making them indistinguishable.
+
+**Cause**: Docker Desktop uses a default hostname of "docker-desktop" regardless of the actual machine hostname.
+
+**Solution**:
+
+**For Windows:**
+```powershell
+# Create daemon.json with custom hostname
+New-Item -Path "$env:USERPROFILE\.docker" -ItemType Directory -Force
+Set-Content -Path "$env:USERPROFILE\.docker\daemon.json" -Value '{ "hostname": "windows" }'
+
+# Restart Docker Desktop
+# Leave existing swarm: docker swarm leave
+# Rejoin with: docker swarm join --token <token> <manager-ip>:2377
+```
+
+**For macOS:**
+```bash
+# Create daemon.json with custom hostname
+mkdir -p ~/.docker
+echo '{ "hostname": "mac" }' > ~/.docker/daemon.json
+
+# Restart Docker Desktop
+# Leave existing swarm: docker swarm leave  
+# Rejoin with: docker swarm join --token <token> <manager-ip>:2377
+```
+
+**Alternative**: Use Docker Desktop Settings → Docker Engine → Add `"hostname": "your-name"` to JSON config.
+
 ### 1. Docker Service Fails to Start on Arch Linux
 
 **Error**: 

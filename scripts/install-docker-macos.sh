@@ -3,6 +3,25 @@
 # Docker Installation Script for macOS
 # This script downloads and installs Docker Desktop for macOS
 
+# IMPORTANT: CUSTOM HOSTNAME CONFIGURATION
+# ===========================================
+# By default, Docker Desktop uses "docker-desktop" as the hostname when joining Docker Swarm.
+# To use a custom hostname (e.g., "mac"), you need to configure Docker after installation:
+#
+# METHOD 1: Create/edit daemon.json file
+# 1. Create file: ~/.docker/daemon.json
+# 2. Add content: { "hostname": "mac" }
+# 3. Restart Docker Desktop
+#
+# METHOD 2: Docker Desktop Settings
+# 1. Open Docker Desktop → Settings → Docker Engine
+# 2. Add to JSON: "hostname": "mac"
+# 3. Apply & Restart
+#
+# After changing hostname, leave and rejoin the swarm:
+# docker swarm leave
+# docker swarm join --token <token> <manager-ip>:2377
+
 set -e
 
 echo "Installing Docker Desktop on macOS..."
@@ -138,7 +157,20 @@ done
 if docker system info > /dev/null 2>&1; then
     echo "✓ Docker Desktop is running and ready"
     docker --version
+    
+    echo ""
+    echo "=== IMPORTANT: CONFIGURE CUSTOM HOSTNAME ==="
+    echo "Configure a custom hostname for Docker Swarm:"
+    echo "1. Create file: ~/.docker/daemon.json"
+    echo "2. Add content: { \"hostname\": \"mac\" }"
+    echo "3. Restart Docker Desktop"
+    echo "4. Leave existing swarm: docker swarm leave"
+    echo "5. Rejoin with: docker swarm join --token <token> <manager-ip>:2377"
+    echo ""
 else
     echo "⚠ Docker Desktop may still be starting up"
     echo "Please check Docker Desktop in your Applications folder"
+    echo ""
+    echo "After Docker starts, remember to configure custom hostname:"
+    echo "Create ~/.docker/daemon.json with: { \"hostname\": \"mac\" }"
 fi

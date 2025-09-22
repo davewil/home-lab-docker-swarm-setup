@@ -3,6 +3,14 @@
 # Docker Swarm Worker Join Script for macOS
 # Run this script on the macOS machine (mac.kumanet)
 
+# IMPORTANT: CONFIGURE CUSTOM HOSTNAME FIRST!
+# ===========================================
+# Before running this script, configure a custom hostname for Docker:
+# 1. Create file: ~/.docker/daemon.json
+# 2. Add content: { "hostname": "mac" }
+# 3. Restart Docker Desktop
+# This will make your node appear as "mac" instead of "docker-desktop" in swarm listings.
+
 set -e
 
 echo "Joining Docker Swarm as Worker Node (macOS)..."

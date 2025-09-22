@@ -1,6 +1,14 @@
 # Docker Swarm Worker Join Script for Windows 11
 # Run this script on the Windows machine (windows.kumanet)
 
+# IMPORTANT: CONFIGURE CUSTOM HOSTNAME FIRST!
+# ===========================================
+# Before running this script, configure a custom hostname for Docker:
+# 1. Create file: %USERPROFILE%\.docker\daemon.json
+# 2. Add content: { "hostname": "windows" }
+# 3. Restart Docker Desktop
+# This will make your node appear as "windows" instead of "docker-desktop" in swarm listings.
+
 param(
     [Parameter(Mandatory=$true)]
     [string]$WorkerToken,

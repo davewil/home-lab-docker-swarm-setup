@@ -48,6 +48,32 @@ sudo ./scripts/firewall-macos.sh
 sudo ./scripts/init-swarm-manager.sh
 ```
 
+### ⚠️ IMPORTANT: Configure Custom Hostnames (Docker Desktop)
+
+By default, Docker Desktop uses "docker-desktop" as the hostname in Docker Swarm, making it impossible to distinguish between Windows and macOS nodes. **Configure custom hostnames before joining the swarm:**
+
+**On Windows:**
+```powershell
+# Create daemon.json file
+New-Item -Path "$env:USERPROFILE\.docker" -ItemType Directory -Force
+Set-Content -Path "$env:USERPROFILE\.docker\daemon.json" -Value '{ "hostname": "windows" }'
+
+# Restart Docker Desktop, then verify
+docker info | grep -i hostname
+```
+
+**On macOS:**
+```bash
+# Create daemon.json file
+mkdir -p ~/.docker
+echo '{ "hostname": "mac" }' > ~/.docker/daemon.json
+
+# Restart Docker Desktop, then verify
+docker info | grep -i hostname
+```
+
+**Alternative:** Use Docker Desktop Settings → Docker Engine → Add `"hostname": "your-name"` to the JSON configuration.
+
 ```bash
 # 4. Join workers (copy tokens from step 3)
 # On Windows:
