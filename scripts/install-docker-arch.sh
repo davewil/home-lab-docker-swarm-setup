@@ -55,9 +55,9 @@ echo "Configuring Docker daemon for Swarm..."
 mkdir -p /etc/docker
 
 # Create daemon.json with optimizations for Swarm
+# Note: "hosts" directive is removed to avoid conflict with systemd
 cat > /etc/docker/daemon.json << 'EOF'
 {
-  "hosts": ["unix:///var/run/docker.sock"],
   "log-driver": "json-file",
   "log-opts": {
     "max-size": "10m",
@@ -65,10 +65,21 @@ cat > /etc/docker/daemon.json << 'EOF'
   },
   "storage-driver": "overlay2",
   "live-restore": true,
-  "userland-proxy": false,
+  "userland-proxy": true,
   "experimental": false
 }
 EOF
+
+# Create systemd override for Docker service to handle bridge netfilter issues
+echo "Configuring systemd override for Docker service..."
+mkdir -p /etc/systemd/system/docker.service.d
+cat > /etc/systemd/system/docker.service.d/ignore-bridge-netfilter.conf << 'EOF'
+[Service]
+Environment="DOCKER_IGNORE_BR_NETFILTER_ERROR=1"
+EOF
+
+# Reload systemd to pick up the override
+systemctl daemon-reload
 
 # Restart Docker to apply configuration
 echo "Restarting Docker to apply configuration..."
