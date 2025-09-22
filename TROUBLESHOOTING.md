@@ -161,6 +161,19 @@ Error response from daemon: could not choose an IP address to advertise since th
 docker swarm init --advertise-addr <specific-ip-address>
 ```
 
+**Error**:
+```
+Error response from daemon: --live-restore daemon configuration is incompatible with swarm mode
+```
+
+**Solution**:
+```bash
+# Remove live-restore from daemon.json
+sudo nano /etc/docker/daemon.json
+# Remove the line: "live-restore": true,
+sudo systemctl restart docker
+```
+
 ### 2. Worker Fails to Join
 
 **Error**:

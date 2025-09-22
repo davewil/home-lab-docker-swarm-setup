@@ -13,18 +13,41 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
-# Update package database
-echo "Updating package database..."
-pacman -Sy
+# Check if Docker is already installed and running
+if command -v docker > /dev/null 2>&1 && systemctl is-active --quiet docker; then
+    echo "Docker is already installed and running"
+    echo "Current Docker version: $(docker --version)"
+    echo "Skipping installation, proceeding with configuration..."
+else
+    # Update package database
+    echo "Updating package database..."
+    pacman -Sy
 
-# Install Docker
-echo "Installing Docker..."
-pacman -S --noconfirm docker docker-compose
+    # Install Docker
+    echo "Installing Docker..."
+    pacman -S --noconfirm docker docker-compose
+fi
 
 # Enable and start Docker service
 echo "Enabling and starting Docker service..."
 systemctl enable docker
-systemctl start docker
+
+# Check if Docker is already running
+if systemctl is-active --quiet docker; then
+    echo "Docker is already running"
+else
+    systemctl start docker
+    
+    # Wait a moment for Docker to fully start
+    sleep 3
+    
+    # Verify Docker started successfully
+    if ! systemctl is-active --quiet docker; then
+        echo "✗ Docker service failed to start"
+        echo "Check logs with: journalctl -xeu docker.service"
+        exit 1
+    fi
+fi
 
 # Add current user to docker group (if script is run with sudo, add the original user)
 if [ -n "$SUDO_USER" ]; then
@@ -56,6 +79,7 @@ mkdir -p /etc/docker
 
 # Create daemon.json with optimizations for Swarm
 # Note: "hosts" directive is removed to avoid conflict with systemd
+# Note: "live-restore" is removed as it's incompatible with Swarm mode
 cat > /etc/docker/daemon.json << 'EOF'
 {
   "log-driver": "json-file",
@@ -64,7 +88,6 @@ cat > /etc/docker/daemon.json << 'EOF'
     "max-file": "3"
   },
   "storage-driver": "overlay2",
-  "live-restore": true,
   "userland-proxy": true,
   "experimental": false
 }
@@ -83,7 +106,17 @@ systemctl daemon-reload
 
 # Restart Docker to apply configuration
 echo "Restarting Docker to apply configuration..."
-systemctl restart docker
+if systemctl restart docker; then
+    # Wait for Docker to be ready
+    sleep 3
+    if systemctl is-active --quiet docker; then
+        echo "✓ Docker restarted successfully"
+    else
+        echo "⚠ Docker restart may have failed, but continuing..."
+    fi
+else
+    echo "⚠ Docker restart failed, but Docker may still be running"
+fi
 
 echo "✓ Docker installation and configuration completed"
 echo ""

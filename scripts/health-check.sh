@@ -49,8 +49,8 @@ check_swarm_nodes() {
     echo "$nodes_output"
     
     local total_nodes=$(docker node ls --format "{{.ID}}" | wc -l)
-    local ready_nodes=$(docker node ls --filter "status=ready" --format "{{.ID}}" | wc -l)
-    local active_nodes=$(docker node ls --filter "availability=active" --format "{{.ID}}" | wc -l)
+    local ready_nodes=$(docker node ls --format "{{.Status}}" | grep -c "Ready" || echo "0")
+    local active_nodes=$(docker node ls --format "{{.Availability}}" | grep -c "Active" || echo "0")
     
     print_info "Node summary: $ready_nodes/$total_nodes ready, $active_nodes/$total_nodes active"
     
@@ -160,7 +160,7 @@ check_node_connectivity() {
         local hostname=$(echo "$node_info" | awk '{print $1}')
         local status=$(echo "$node_info" | awk '{print $2}')
         
-        if [[ "$hostname" != "HOSTNAME" ]] && [[ "$status" == "Ready" ]]; then
+        if [[ "$hostname" != "HOSTNAME" ]] && [[ "$status" == "Ready" ]] && [[ "$hostname" != "$(hostname)" ]]; then
             # Test Docker Swarm ports
             if nc -z "$hostname" 2377 2>/dev/null; then
                 print_success "Connectivity to $hostname:2377 ✓"
@@ -194,10 +194,22 @@ generate_report() {
     echo ""
     
     # Count status types
-    local success_count=$(printf '%s\n' "${HEALTH_CHECKS[@]}" | grep -c "✓" || echo "0")
-    local warning_count=$(printf '%s\n' "${HEALTH_CHECKS[@]}" | grep -c "⚠" || echo "0")
-    local error_count=$(printf '%s\n' "${HEALTH_CHECKS[@]}" | grep -c "✗" || echo "0")
-    local info_count=$(printf '%s\n' "${HEALTH_CHECKS[@]}" | grep -c "ℹ" || echo "0")
+    local success_count=0
+    local warning_count=0
+    local error_count=0
+    local info_count=0
+    
+    for check in "${HEALTH_CHECKS[@]}"; do
+        if [[ "$check" == *"✓"* ]]; then
+            ((success_count++))
+        elif [[ "$check" == *"⚠"* ]]; then
+            ((warning_count++))
+        elif [[ "$check" == *"✗"* ]]; then
+            ((error_count++))
+        elif [[ "$check" == *"ℹ"* ]]; then
+            ((info_count++))
+        fi
+    done
     
     print_info "Summary: $success_count passed, $warning_count warnings, $error_count errors, $info_count info"
     
