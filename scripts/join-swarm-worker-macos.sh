@@ -76,6 +76,30 @@ docker swarm join --token "$WORKER_TOKEN" "$MANAGER_IP:2377"
 
 if [[ $? -eq 0 ]]; then
     echo "✓ Successfully joined Docker Swarm as worker node"
+    # Promote this node to manager
+    echo "Promoting this node to manager..."
+    docker node promote mac.kumanet
+    # Add tags for this node
+    echo "Tagging this node with: web,db"
+    docker node update --label-add tags=web,db mac.kumanet
+    echo "✓ Node promoted to manager and tagged"
+
+    # Automated verification
+    echo "Verifying manager status and tags..."
+    ROLE=$(docker node inspect mac.kumanet --format '{{ .Spec.Role }}')
+    LABELS=$(docker node inspect mac.kumanet --format '{{ .Spec.Labels.tags }}')
+    if [[ "$ROLE" == "manager" ]]; then
+        echo "✓ Node is a manager"
+    else
+        echo "✗ Node is NOT a manager!"
+        exit 1
+    fi
+    if [[ "$LABELS" == "web,db" ]]; then
+        echo "✓ Node tags are correct: $LABELS"
+    else
+        echo "✗ Node tags are incorrect: $LABELS"
+        exit 1
+    fi
 else
     echo "✗ Failed to join Docker Swarm"
     exit 1

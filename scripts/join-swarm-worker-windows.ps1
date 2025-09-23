@@ -79,6 +79,29 @@ try {
     
     if ($LASTEXITCODE -eq 0) {
         Write-Host "✓ Successfully joined Docker Swarm as worker node" -ForegroundColor Green
+        # Promote this node to manager
+        Write-Host "Promoting this node to manager..." -ForegroundColor Yellow
+        docker node promote $env:COMPUTERNAME
+        # Add tags for this node
+        Write-Host "Tagging this node with: web,db,ai,webrtc,monitoring" -ForegroundColor Yellow
+        docker node update --label-add tags=web,db,ai,webrtc,monitoring $env:COMPUTERNAME
+        Write-Host "✓ Node promoted to manager and tagged" -ForegroundColor Green
+        # Automated verification
+        Write-Host "Verifying manager status and tags..." -ForegroundColor Yellow
+        $role = docker node inspect $env:COMPUTERNAME --format '{{ .Spec.Role }}'
+        $labels = docker node inspect $env:COMPUTERNAME --format '{{ .Spec.Labels.tags }}'
+        if ($role -eq 'manager') {
+            Write-Host "✓ Node is a manager" -ForegroundColor Green
+        } else {
+            Write-Error "✗ Node is NOT a manager!"
+            exit 1
+        }
+        if ($labels -eq 'web,db,ai,webrtc,monitoring') {
+            Write-Host "✓ Node tags are correct: $labels" -ForegroundColor Green
+        } else {
+            Write-Error "✗ Node tags are incorrect: $labels"
+            exit 1
+        }
     }
     else {
         Write-Error "Failed to join Docker Swarm (exit code: $LASTEXITCODE)"

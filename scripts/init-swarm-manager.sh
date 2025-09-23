@@ -46,6 +46,28 @@ docker swarm init --advertise-addr "$PRIMARY_IP"
 
 if [[ $? -eq 0 ]]; then
     echo "✓ Docker Swarm manager node initialized successfully"
+    # Promote this node to manager (redundant but explicit)
+    docker node promote linux.kumanet
+    # Add tags for this node
+    docker node update --label-add tags=dns,web,db,monitoring linux.kumanet
+    echo "✓ Node promoted to manager and tagged: dns,web,db,monitoring"
+
+    # Automated verification
+    echo "Verifying manager status and tags..."
+    ROLE=$(docker node inspect linux.kumanet --format '{{ .Spec.Role }}')
+    LABELS=$(docker node inspect linux.kumanet --format '{{ .Spec.Labels.tags }}')
+    if [[ "$ROLE" == "manager" ]]; then
+        echo "✓ Node is a manager"
+    else
+        echo "✗ Node is NOT a manager!"
+        exit 1
+    fi
+    if [[ "$LABELS" == "dns,web,db,monitoring" ]]; then
+        echo "✓ Node tags are correct: $LABELS"
+    else
+        echo "✗ Node tags are incorrect: $LABELS"
+        exit 1
+    fi
 else
     echo "✗ Failed to initialize Docker Swarm"
     exit 1

@@ -5,6 +5,7 @@ A complete setup guide for deploying Docker Swarm across three machines with dif
 ## Overview
 
 This setup creates a Docker Swarm cluster with:
+
 - **Manager Node**: Arch Linux (linux.kumanet) - DNS Server, Docker Swarm Manager
 - **Worker Node 1**: Windows 11 Pro (windows.kumanet) - Docker Swarm Worker  
 - **Worker Node 2**: macOS Tahoe (mac.kumanet) - Docker Swarm Worker
@@ -12,11 +13,13 @@ This setup creates a Docker Swarm cluster with:
 ## Quick Start
 
 ### 1. Prerequisites
+
 - All machines connected to the same network
 - DNS resolution working between machines (linux.kumanet, windows.kumanet, mac.kumanet)
 - Root/Administrator access on all machines
 
 ### 2. Installation Order
+
 Execute these steps in order:
 
 ```bash
@@ -48,10 +51,36 @@ sudo ./scripts/firewall-macos.sh
 sudo ./scripts/init-swarm-manager.sh
 ```
 
-### 3. Verify Setup
+### 3. Promote All Nodes to Manager (Multi-Leader Setup)
+
+After all nodes have joined the swarm, promote each node to manager so you can manage the swarm from any machine:
+
 ```bash
-# On manager node (Arch Linux):
+# On any manager node, run:
+docker node promote linux.kumanet
+docker node promote windows.kumanet
+docker node promote mac.kumanet
+```
+
+### 4. Tag Nodes with Roles/Capabilities
+
+Add tags to each node to reflect their roles and capabilities. This helps with service placement and management:
+
+```bash
+# On any manager node, run:
+docker node update --label-add tags=dns,web,db,monitoring linux.kumanet
+docker node update --label-add tags=web,db,ai,webrtc,monitoring windows.kumanet
+docker node update --label-add tags=web,db mac.kumanet
+```
+
+### 5. Verify Setup
+
+```bash
+# On any manager node:
 docker node ls
+docker node inspect linux.kumanet --format '{{ .Spec.Labels }}'
+docker node inspect windows.kumanet --format '{{ .Spec.Labels }}'
+docker node inspect mac.kumanet --format '{{ .Spec.Labels }}'
 ./scripts/health-check.sh
 ```
 
@@ -60,6 +89,7 @@ docker node ls
 ### Network Requirements
 
 All machines must be able to communicate on these ports:
+
 - **2377/tcp**: Cluster management (Manager only)
 - **7946/tcp & 7946/udp**: Container network discovery (All nodes)
 - **4789/udp**: Overlay network traffic (All nodes)
@@ -69,6 +99,7 @@ See [network-requirements.md](network-requirements.md) for detailed information.
 ### Firewall Configuration
 
 Firewall scripts are provided for each platform:
+
 - **Arch Linux**: `scripts/firewall-arch-linux.sh` - Uses iptables
 - **Windows 11**: `scripts/firewall-windows.ps1` - Uses Windows Defender Firewall
 - **macOS**: `scripts/firewall-macos.sh` - Uses pfctl and Application Layer Firewall
@@ -76,6 +107,7 @@ Firewall scripts are provided for each platform:
 ### Docker Installation
 
 Platform-specific installation scripts:
+
 - **Arch Linux**: `scripts/install-docker-arch.sh` - Uses pacman
 - **Windows 11**: `scripts/install-docker-windows.ps1` - Downloads Docker Desktop
 - **macOS**: `scripts/install-docker-macos.sh` - Downloads Docker Desktop
@@ -83,6 +115,7 @@ Platform-specific installation scripts:
 ### Swarm Management
 
 Use the management script for common operations:
+
 ```bash
 # Interactive menu
 ./scripts/manage-swarm.sh
@@ -96,12 +129,15 @@ Use the management script for common operations:
 ## Service Deployment
 
 ### Using Docker Compose Stack
+
 Deploy the example stack:
+
 ```bash
 docker stack deploy -c docker-compose.yml homelab
 ```
 
 This deploys:
+
 - Nginx web servers (3 replicas)
 - Traefik load balancer
 - PostgreSQL database
@@ -110,6 +146,7 @@ This deploys:
 - Monitoring stack (Prometheus, Grafana, Loki)
 
 ### Individual Services
+
 ```bash
 # Deploy simple nginx service
 docker service create --name web --replicas 3 --publish 80:80 nginx:alpine
@@ -127,22 +164,27 @@ docker service rm web
 ## Monitoring and Health Checks
 
 ### Health Check Script
+
 Run comprehensive health checks:
+
 ```bash
 ./scripts/health-check.sh
 ```
 
 This checks:
+
 - Node status and connectivity
 - Service health and replica counts
 - Network and volume status
 - System resources
 
 ### Monitoring Stack
+
 Access monitoring services:
-- **Grafana**: http://manager-ip:3000 (admin/admin)
-- **Prometheus**: http://manager-ip:9090
-- **Portainer**: http://manager-ip:9000
+
+- **Grafana**: <http://manager-ip:3000> (admin/admin)
+- **Prometheus**: <http://manager-ip:9090>
+- **Portainer**: <http://manager-ip:9000>
 
 ## Directory Structure
 
@@ -172,6 +214,7 @@ home_lab_docker_swarm_setup/
 ## Common Commands
 
 ### Swarm Management
+
 ```bash
 # View nodes
 docker node ls
@@ -191,6 +234,7 @@ docker swarm join-token manager
 ```
 
 ### Node Management
+
 ```bash
 # Drain node for maintenance
 docker node update --availability drain <node-name>
@@ -209,6 +253,7 @@ docker node demote <node-name>
 ```
 
 ### Stack Management
+
 ```bash
 # Deploy stack
 docker stack deploy -c docker-compose.yml <stack-name>
@@ -250,6 +295,7 @@ docker stack rm <stack-name>
    - Review service placement and distribution
 
 ### Diagnostic Commands
+
 ```bash
 # System information
 docker system info
@@ -268,6 +314,7 @@ docker service inspect <service-name>
 ```
 
 ### Log Files
+
 - **Arch Linux**: `/var/log/docker/` or `journalctl -u docker`
 - **Windows**: Docker Desktop logs in `%APPDATA%\Docker\log`
 - **macOS**: Docker Desktop logs in `~/Library/Containers/com.docker.docker/Data/log`
@@ -283,18 +330,21 @@ docker service inspect <service-name>
 ## Backup and Recovery
 
 ### Backup Swarm State
+
 ```bash
 # On manager node, backup swarm state
 sudo cp -r /var/lib/docker/swarm /backup/swarm-$(date +%Y%m%d)
 ```
 
 ### Backup Volumes
+
 ```bash
 # Create volume backup
 docker run --rm -v <volume-name>:/data -v $(pwd):/backup alpine tar czf /backup/volume-backup.tar.gz -C /data .
 ```
 
 ### Disaster Recovery
+
 1. Maintain multiple manager nodes for high availability
 2. Regular backups of critical data volumes
 3. Document restoration procedures
@@ -303,6 +353,7 @@ docker run --rm -v <volume-name>:/data -v $(pwd):/backup alpine tar czf /backup/
 ## Maintenance
 
 ### Regular Tasks
+
 - Run health checks: `./scripts/health-check.sh`
 - Update services: `docker service update --image <new-image> <service>`
 - Clean up unused resources: `docker system prune`
@@ -310,11 +361,13 @@ docker run --rm -v <volume-name>:/data -v $(pwd):/backup alpine tar czf /backup/
 - Review logs for errors or security issues
 
 ### Updating Docker
+
 Follow platform-specific update procedures and test in non-production environment first.
 
 ## Contributing
 
 To extend this setup:
+
 1. Add new services to `docker-compose.yml`
 2. Update firewall scripts if new ports are needed
 3. Enhance monitoring configuration
@@ -323,6 +376,7 @@ To extend this setup:
 ## Support
 
 For issues:
+
 1. Check the troubleshooting section
 2. Review Docker Swarm documentation
 3. Run health check script for detailed diagnostics
